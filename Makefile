@@ -2,22 +2,25 @@
 DESTDIR=/usr/local
 PREFIX=mbedtls_
 
-.SILENT:
-
 .PHONY: all no_test programs lib tests install uninstall clean test check covtest lcov apidoc apidoc_clean
 
-all: programs tests
+all: lib programs tests
 
 no_test: programs
 
-programs: lib
+programs:
+ifndef SKIP_PROGRAMS
 	$(MAKE) -C programs
+endif
 
 lib:
-	$(MAKE) -C library
+	$(MAKE) -C library static
+	$(MAKE) -C library shared
 
 tests: lib
+ifndef SKIP_TESTS
 	$(MAKE) -C tests
+endif
 
 ifndef WINDOWS
 install: no_test
@@ -25,10 +28,11 @@ install: no_test
 	cp -r include/mbedtls $(DESTDIR)/include
 	
 	mkdir -p $(DESTDIR)/lib
-	cp -RP library/libmbedtls.*    $(DESTDIR)/lib
-	cp -RP library/libmbedx509.*   $(DESTDIR)/lib
-	cp -RP library/libmbedcrypto.* $(DESTDIR)/lib
+	cp -a library/*.a $(DESTDIR)/lib
+	cp -a library/*.so $(DESTDIR)/lib
+	cp -a library/*.so.* $(DESTDIR)/lib
 	
+ifndef SKIP_PROGRAMS
 	mkdir -p $(DESTDIR)/bin
 	for p in programs/*/* ; do              \
 	    if [ -x $$p ] && [ ! -d $$p ] ;     \
@@ -37,6 +41,7 @@ install: no_test
 	        cp $$p $(DESTDIR)/bin/$$f ;     \
 	    fi                                  \
 	done
+endif
 
 uninstall:
 	rm -rf $(DESTDIR)/include/mbedtls
@@ -44,6 +49,7 @@ uninstall:
 	rm -f $(DESTDIR)/lib/libmbedx509.*
 	rm -f $(DESTDIR)/lib/libmbedcrypto.*
 	
+ifndef SKIP_PROGRAMS
 	for p in programs/*/* ; do              \
 	    if [ -x $$p ] && [ ! -d $$p ] ;     \
 	    then                                \
@@ -51,6 +57,7 @@ uninstall:
 	        rm -f $(DESTDIR)/bin/$$f ;      \
 	    fi                                  \
 	done
+endif
 endif
 
 clean:
